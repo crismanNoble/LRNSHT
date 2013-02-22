@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<script src="js/d3.js"></script>
+	<script src="js/jquery.js"></script>
+	<script type="text/javascript" src="http://canvg.googlecode.com/svn/trunk/rgbcolor.js"></script>
+	<script type="text/javascript" src="http://canvg.googlecode.com/svn/trunk/canvg.js"></script>
+
+	<script>
+
+	var data = [
+		{'x':1,'y':6},
+		{'x':2,'y':1},
+		{'x':3,'y':4},
+		{'x':4,'y':7},
+		{'x':5,'y':6},
+		{'x':6,'y':2},
+		{'x':7,'y':8},
+		{'x':8,'y':2},
+		{'x':9,'y':12},
+		{'x':10,'y':10},
+		{'x':11,'y':2},
+		{'x':12,'y':7}
+
+	];
+
+	var lastYearData = [
+		{'x':1,'y':1},
+		{'x':2,'y':2},
+		{'x':3,'y':3},
+		{'x':4,'y':4},
+		{'x':5,'y':5},
+		{'x':6,'y':6},
+		{'x':7,'y':7},
+		{'x':8,'y':8},
+		{'x':9,'y':9},
+		{'x':10,'y':10},
+		{'x':11,'y':11},
+		{'x':12,'y':12}	
+	];
+
+	var goal = 6
+
+	$(document).ready(function(){
+		draw(data);
+
+		// $('#downloadLink').hover(function(){
+		// 	generateDownloadLink();
+		// });
+
+		generateDownloadLink();
+	});
+
+	function generateDownloadLink() {
+		var content = $('#chart').html().trim();
+		var canvas = document.createElement('canvas');
+		canvg(canvas, content);
+		var theImage = canvas.toDataURL('image/png');
+    	$('#downloadLink').attr('href', theImage);
+    	canvas.remove();	
+	}
+
+	function draw(data) {
+
+		//set variables
+		var chartHeight = 200;
+		var chartWidth = 300;
+		var padding = 20;
+
+		var barPadding = 3;
+		var barWidth = (chartWidth - 2 * padding)/data.length - barPadding;
+
+		//create the chart
+		var chart = d3.select('#chart').append('svg')
+			.attr('class', 'chart')
+			.attr('id','svgChart')
+			.attr('width', chartWidth)
+			.attr('height', chartHeight)
+			.attr('style','background: #ccc;font-size: 10px;font-family: sans-serif;');
+
+		//define scales
+		y_max = Math.max(
+			(d3.max(data, function(d){return d.y})),
+			(d3.max(lastYearData, function(d){return d.y}))
+		);
+
+		y_scale = d3.scale.linear()
+			.domain([0, y_max])
+			.range([0, chartHeight - 2 * padding]);
+
+		x_scale = d3.scale.linear()
+			.domain([1, d3.max(data, function(d){return d.x})])
+			.range([padding, chartWidth - padding - barWidth]);
+
+		//draw goal dash
+		chart.append('line')
+			.attr('x1', padding)
+			.attr('x2', padding + chartWidth)
+			.attr('y1', y_scale(goal))
+			.attr('y2', y_scale(goal))
+			.attr('style', 'stroke-dasharray: 9, 5')
+			.attr('stroke','#f0f');
+
+		//draw bars
+		chart.selectAll('rect')
+			.data(data)
+			.enter().append('rect')
+				.attr('class','series1')
+				.attr('style','opacity:1')
+				.attr('width', barWidth)
+				.attr('x', function(d,i){
+					return x_scale(d.x);
+				})
+				.attr('height', function(d,i){
+					return y_scale(d.y);
+				})
+				.attr('y',function(d,i){
+					return chartHeight -  padding - y_scale(d.y);
+				})
+				.attr('stroke','none')
+				.attr('fill','SteelBlue');
+
+		//draw last year ticks
+		chart.selectAll('line')
+			.data(lastYearData)
+			.enter().append('line')
+				.attr('class','lastYearTick')
+				.attr('stroke','red')
+				.attr('x1', function(d,i){
+					return x_scale(d.x);
+				})
+				.attr('x2', function(d,i) {
+					return x_scale(d.x) + barWidth;
+				})
+				.attr('y1', function(d,i){
+					return chartHeight - padding - y_scale(d.y);
+				})
+				.attr('y2', function(d,i){
+					return chartHeight - padding - y_scale(d.y);
+				});
+
+		//generate some interactivity
+		d3.selectAll('.series1')
+			.on('mouseover',function(d){
+				d3.select(this)
+					.transition()
+					.attr('style','opacity:.7');
+			})
+			.on('mouseout', function(d){
+				d3.select(this)
+					.transition()
+					.attr('style','opacity:1');
+			});
+
+		//define tooltips
+		d3.selectAll('.series1')
+			.on('mouseover.tooltip',function(d){
+				d3.select('text.tooltip').remove();
+				d3.select('.chart')
+					.append('text')
+					.text(d.y)
+					.attr('x', x_scale(d.x))
+					.attr('dx', barWidth/2)
+					.attr('text-anchor', "middle")
+					.attr('y', chartHeight - padding - y_scale(d.y)/2)
+					.attr('dy', '.35em')
+					.attr('class', 'tooltip');
+			});
+
+		d3.selectAll('.lastYearTick')
+			.on('mouseover.tooltip',function(d){
+				d3.select('text.tooltip').remove();
+				d3.select('.chart')
+					.append('text')
+					.text(d.y)
+					.attr('x', x_scale(d.x))
+					.attr('dx', barWidth/2)
+					.attr('text-anchor', "middle")
+					.attr('y', chartHeight - padding - y_scale(d.y) - 10)
+					.attr('dy', '.35em')
+					.attr('class', 'tooltip');
+			});
+
+		
+
+	}
+
+	</script>
+
+	<style>
+
+
+	</style>
+</head>
+<body>
+	<div id="chart">
+	</div>
+	<a href="#" id="downloadLink">download</a>
+</body>
+</html>
